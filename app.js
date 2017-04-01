@@ -2,6 +2,7 @@
 /**
  * Module dependencies
  */
+var logger = require('./libs/logger');
 
 var express = require('express'),
   routes = require('./routes'),
@@ -9,9 +10,15 @@ var express = require('express'),
   http = require('http'),
   path = require('path');
 
+
+var sharedSession = require("express-socket.io-session");
+
+
 var app = module.exports = express();
 var server = require('http').createServer(app);
 var io = require('socket.io').listen(server);
+var redis = require('socket.io-redis');
+io.adapter(redis({ host: 'localhost', port: 6379 }));
 
 /**
  * Configuration
@@ -25,6 +32,41 @@ app.use(express.logger('dev'));
 app.use(express.bodyParser());
 app.use(express.methodOverride());
 app.use(express.static(path.join(__dirname, 'public')));
+
+
+sessionSecret = 'dieTonton';
+var session = require("express-session")({
+  secret: sessionSecret,
+  cookie: {expires: new Date(2147483647000)},
+  resave: true,
+
+  saveUninitialized: true
+});
+// Attach session
+app.use(session);
+
+// Share session with io sockets
+io.use(sharedSession(session, {
+  secret: sessionSecret,
+  autoSave: true,
+  cookie: {expires: new Date(2147483647000)},
+  saveUninitialized: true
+}));
+
+
+//Debugging express
+app.use(function(req, res, next) {
+  logger.info("Express `req.session` data is %j.", req.session);
+  next();
+});
+// Debugging io
+io.use(function(socket, next) {
+  logger.info("socket.handshake session data is %j.", socket.handshake.session);
+  next();
+});
+
+
+
 app.use(app.router);
 
 // development only
@@ -51,6 +93,7 @@ app.get('/api/name', api.name);
 
 // redirect all others to the index (HTML5 history)
 app.get('*', routes.index);
+//
 
 // Socket.io Communication
 io.sockets.on('connection', require('./routes/socket'));

@@ -9,11 +9,25 @@ block body
       li
         a(href='view2') view2
 
+    .col
+      h3 Users
+      .overflowable
+        p(ng-repeat="user in users") {{user}}
+
+    .clr
+      h3 Change your name
+      p Your current user name is {{name}}
+      form(ng-submit='changeName()')
+        input(ng-model='newName')
+        input(type='submit', value='Change Name')
+
     div(ng-view)
+
 
     div
       | Angular Socket.io seed app: v
       span(app-version)
+      p(ng-repeat='user in users') {{user}}
 
   script(src='/socket.io/socket.io.js')
   script(src='bower_components/angular/angular.js')
