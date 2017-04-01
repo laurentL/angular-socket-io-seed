@@ -1,0 +1,15 @@
+table.table
+    thead
+        tr
+
+            th User name
+            th Join game
+    tbody
+        tr(ng-repeat="user in users", ng-if="user != name")
+            th(scope='row') {{user}}
+            td
+                a(ng-click="joinGame(user)").pointer {{user}}
+
+    .overflowable
+        p(ng-repeat="user in users")
+            a(ng-if="user != name", href='invite/{{user}}'){{user}}

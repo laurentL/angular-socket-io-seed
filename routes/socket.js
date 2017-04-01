@@ -76,7 +76,9 @@ module.exports = function (socket) {
   // send the new user their name and a list of users
   socket.emit('init', {
     name: name,
-    users: userNames.get()
+    users: userNames.get(),
+    version: 7 // change this value relaod all client
+
   });
 
   socket.emit('send:name', {
@@ -87,23 +89,24 @@ module.exports = function (socket) {
 
   // shit hack due the   user:leave arrive after user:join during a page refresh
   setTimeout(function () {
-    socket.broadcast.emit('user:join', {name: name});
+    socket.broadcast.emit('user:update', {name: name});
+    socket.emit('user:update', {name: name});
   }, 5000);
 
-  ping =  function (name) {
+  socket.on('user:ping', function (data) {
+    logger.info('user:ping %s', name);
     client.setex('presence-' + name, 30, 'CREPEOSUC');
-    socket.broadcast.emit('user:ping', {name: name});
-  }
-  ping(name);
-  setInterval(function () {
-    ping(name);
-  }, 30000)
-
+    socket.broadcast.emit('user:update', {name: name});
+    //refresh myself
+    socket.emit('user:update', {name: name});
+  });
   socket.on('disconnect', function () {
     logger.info('user disconnected', name);
+
     socket.broadcast.emit('user:leave', {
       name: name
     });
+    client.del('presence-' + name, 30, 'CREPEOSUC');
     userNames.free(name);
   });
 
