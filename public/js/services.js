@@ -7,6 +7,8 @@
 // In this case it is a simple value service.
 angular.module('myApp.services', []).
   factory('socket', function (socketFactory) {
-    return socketFactory();
+    var options = {};
+    options.ioSocket = io.connect('', {transports: ['websocket']});
+    return socketFactory(options);
   }).
   value('version', '0.1');

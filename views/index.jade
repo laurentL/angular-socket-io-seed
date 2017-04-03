@@ -1,7 +1,7 @@
 extends layout
 
 block body
-    div(ng-controller='AppCtrl')
+    div(ng-controller='AppCtrl').container
         h2 Hello {{name}}
         ul.menu
             li
@@ -13,13 +13,12 @@ block body
         div
             | Puissance 4: v
             span(app-version)
-            p(ng-repeat='user in users')
+
 
     script(src='/socket.io/socket.io.js')
     script(src='bower_components/angular/angular.js')
     script(src='bower_components/angular-route/angular-route.js')
     script(src='bower_components/angular-socket-io/socket.js')
-    script(src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js')
 
     script(src='js/services.js')
     script(src='js/controllers.js')

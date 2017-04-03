@@ -1,3 +1,26 @@
 .pointer {
     cursor: pointer;
 }
+div .blue {
+    background: blue;
+}
+div.cell {
+    height: 95px;
+    border: 1px;
+    border-style: solid;
+}
+/*
+ TOP BUFFER
+ */
+
+.topbuffer-small {
+    margin-top: 10px;
+}
+
+.topbuffer {
+    margin-top: 20px;
+}
+
+.topbuffer-x2 {
+    margin-top: 40px;
+}

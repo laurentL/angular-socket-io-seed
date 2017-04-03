@@ -1,4 +1,3 @@
-
 /**
  * Module dependencies
  */
@@ -18,7 +17,9 @@ var app = module.exports = express();
 var server = require('http').createServer(app);
 var io = require('socket.io').listen(server);
 var redis = require('socket.io-redis');
-io.adapter(redis({ host: 'localhost', port: 6379 }));
+io.adapter(redis({host: 'localhost', port: 6379}));
+io.set('transports', ['websocket']);
+
 
 /**
  * Configuration
@@ -50,21 +51,29 @@ io.use(sharedSession(session, {
   secret: sessionSecret,
   autoSave: true,
   cookie: {expires: new Date(2147483647000)},
-  saveUninitialized: true
+  saveUninitialized: true,
+  resave: true
 }));
 
+io.on('connection', function (socket) {
+  logger.info('New Client connected socket.id %s', socket.id)
+
+  // log disconnect
+  socket.on('disconnect', function() {
+      logger.info('Client gone (id=' + socket.id + ').');
+  });
+});
 
 //Debugging express
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   logger.info("Express `req.session` data is %j.", req.session);
   next();
 });
 // Debugging io
-io.use(function(socket, next) {
+io.use(function (socket, next) {
   logger.info("socket.handshake session data is %j.", socket.handshake.session);
   next();
 });
-
 
 
 app.use(app.router);
@@ -77,7 +86,8 @@ if (app.get('env') === 'development') {
 // production only
 if (app.get('env') === 'production') {
   // TODO
-};
+}
+
 
 
 /**

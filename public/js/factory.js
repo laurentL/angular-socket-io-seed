@@ -3,7 +3,7 @@
  */
 
 angular.module('myApp.factory', [])
-  .factory('localStrorage', function ($window) {
+  .factory('localStorage', function ($window) {
 
     var factory = {};
     factory.getValue = function (key) {
@@ -15,6 +15,9 @@ angular.module('myApp.factory', [])
         return undefined;
       }
     };
+    factory.delValue= function (key) {
+      $window.localStorage.removeItem(key);
+    };
     factory.setValue = function (key, value) {
       $window.localStorage.setItem(key, value);
     };
@@ -23,12 +26,13 @@ angular.module('myApp.factory', [])
       // localStorage store in string
       var cVersion = parseInt(factory.getValue('version'));
 
-      if (sVersion === undefined) {
+      if (isNaN(cVersion)) {
         factory.setValue('version', sVersion);
+        console.log('first start')
 
       } else if (sVersion !== cVersion) {
         factory.setValue('version', sVersion);
-
+        console.log('local version: %s', cVersion);
         $window.location.reload(true); // clear cache and reload
       } else {
         console.log('no update needed serverVersion=%s clietnVersion=%s ', sVersion, cVersion)

@@ -4,110 +4,85 @@
 var logger = require('../libs/logger');
 
 var redis = require('redis');
-var client = redis.createClient();
+var client_redis = redis.createClient();
+var messages = require('../libs/messages');
+var userNames = require('../libs/userNames');
 
 // Keep track of which names are used so that there are no duplicates
-var userNames = (function (socket) {
-  var names = {};
-  this.socket = socket;
-
-  var claim = function (name) {
-    if (!name || names[name]) {
-      return false;
-    } else {
-      names[name] = true;
-      return true;
-    }
-  };
-
-  // find the lowest unused "guest" name and claim it
-  var getGuestName = function () {
-
-    var name,
-      nextUserId = 1;
-
-    do {
-      name = 'Guest ' + nextUserId;
-      nextUserId += 1;
-    } while (!claim(name));
-    return name;
-  };
-
-  // serialize claimed names as an array
-  var get = function () {
-    var res = [];
-    for (user in names) {
-      if (client.ttl('presence-' + user > 0)) {
-        //todo check if it ongame
-        res.push(user);
-      } else {
-        logger.error('user disepear ', user);
-      }
-    }
-
-    return res;
-  };
-
-  var free = function (name) {
-    if (names[name]) {
-      delete names[name];
-    }
-  };
-
-  return {
-    claim: claim,
-    free: free,
-    get: get,
-    getGuestName: getGuestName
-  };
-}());
 
 module.exports = function (socket) {
+  socket.emit('init:request', {});
+  var name = null;
+  var ContextUser = {};
+  var Contextwebsocket = {
+    redis: client_redis,
+    socket: socket
+  };
 
-  if (socket.handshake.session.username) {
-    var name = socket.handshake.session.username;
-  } else {
-    var name = userNames.getGuestName(socket);
-    socket.handshake.session.username = name;
-    socket.handshake.session.save();
-  }
-  logger.info('user Connected', name);
-
-  // send the new user their name and a list of users
-  socket.emit('init', {
-    name: name,
-    users: userNames.get(),
-    version: 7 // change this value relaod all client
+  socket.on('game:invite', function (data) {
+    logger.info('receive game:invite from %s to %s', ContextUser.name, data.to)
+    var parameters = Contextwebsocket;
+    parameters.data = data;
+    parameters.user = ContextUser;
+    messages.gameInvite(parameters)
+      .then(messages.sendInvite)
+      .catch(function (err) {
+      logger.error(err)
+    })
 
   });
 
-  socket.emit('send:name', {
-    name: name
-  });
+  socket.on('init:send', function (data) {
+    var parameters = Contextwebsocket;
+    parameters.data = data;
+    parameters.user = ContextUser;
 
-  socket.broadcast.emit('user:join', {name: name});
+    messages.recvInitSend(parameters)
+      .then(userNames.getGuestName)
+      .then(messages.sendInit)
+      .then(messages.storeSid)
+      .then(messages.sendBroadcastUserJoin)
+      .then(function (parameters) {
+        logger.info('User connected %s', parameters.data.name);
+      })
+      .catch(function (err) {
+        logger.error(err);
+      });
+  });
 
   // shit hack due the   user:leave arrive after user:join during a page refresh
   setTimeout(function () {
-    socket.broadcast.emit('user:update', {name: name});
-    socket.emit('user:update', {name: name});
+    if (ContextUser.name !== null) {
+      socket.broadcast.emit('user:presence', {name: ContextUser.name});
+      socket.emit('user:update', {name: ContextUser.name});
+    }
   }, 5000);
 
+
   socket.on('user:ping', function (data) {
-    logger.info('user:ping %s', name);
-    client.setex('presence-' + name, 30, 'CREPEOSUC');
-    socket.broadcast.emit('user:update', {name: name});
+    userNames.claim(ContextUser.name);
+    logger.info('user:ping %s', ContextUser.name);
+    client_redis.setex('presence-' + name, 30, 'CREPEOSUC');
+    socket.broadcast.emit('user:presence', {name: ContextUser.name});
     //refresh myself
-    socket.emit('user:update', {name: name});
+    socket.emit('user:update', {name: ContextUser.name});
   });
+
   socket.on('disconnect', function () {
-    logger.info('user disconnected', name);
+    logger.info('user disconnected', ContextUser.name);
+    var parameters = Contextwebsocket;
+    parameters.user = ContextUser;
+
+    messages.deleteSid(parameters).catch(function (err) {
+      logger.error(err)
+    });
 
     socket.broadcast.emit('user:leave', {
-      name: name
+      name: ContextUser.name
     });
-    client.del('presence-' + name, 30, 'CREPEOSUC');
-    userNames.free(name);
+    client_redis.del('presence-' + ContextUser.name, 30, 'CREPEOSUC');
+    userNames.free(ContextUser.name);
   });
 
 };
+

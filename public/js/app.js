@@ -14,32 +14,22 @@ angular.module('myApp', [
   // 3rd party dependencies
   'btford.socket-io'
 ]).config(function ($routeProvider, $locationProvider) {
+
   $routeProvider.when('/presence', {
-    templateUrl: 'partials/presence',
-    controller: 'MyCtrl1'
+    templateUrl: 'partials/presence'
+
   })
     .when('/game',{
-    templateUrl: 'partials/game',
-    controller: 'GameCtrl'
+    templateUrl: 'partials/game'
   })
-    .when('/invite/:user', {
-    templateUrl: 'partials/game',
-    controller: 'GameCtrl'
-  }).otherwise({
+    .when('/game/:gameId',{
+    templateUrl: 'partials/game'
+ })
+    .otherwise({
     redirectTo: '/presence'
   });
 
   $locationProvider.html5Mode(true);
-})
-  .config(['$provide', function ($provide) {
-    $provide.decorator('$rootScope', function ($delegate) {
-      var _emit = $delegate.$emit;
+  $locationProvider.hashPrefix('');
+});
 
-      $delegate.$emit = function () {
-        console.log.apply(console, arguments);
-        _emit.apply(this, arguments);
-      };
-
-      return $delegate;
-    });
-  }]);

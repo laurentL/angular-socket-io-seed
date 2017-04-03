@@ -1,9 +1,24 @@
-p This is the partial for view 2.
-p
-  | Showing of 'interpolate' filter:
-  | {{ 'Current version is v%VERSION%.' | interpolate }}
-ul.nav.nav-tabs
-  li.active
-    a(href="#") game1
-  li
-    a(href="#") game2
+div.topbuffer
+    <!-- Nav tabs -->
+    ul.nav.nav-tabs
+        li( ng-repeat="game in games", ng-click="selectGame(game)", ng-class="{active: selectedGame===game}")
+            a(href="/game/{{game}}", aria-controls=gameid, ) {{game}}
+
+    <!-- Tab panes -->
+    div.tab-content.container
+        div( ng-repeat="game in games", ng-show="selectedGame == game").col-md-12
+            h3 {{game}}
+            //
+            // 5 12 19 26 33 40 47
+            // 4 11 18 25 32 39 46
+            // 3 10 17 24 31 38 45
+            // 2 9 16 23 30 37 44
+            // 1 8 15 22 29 36 43
+            // 0 7 14 21 28 35 42
+
+            div.topbuffer
+                div(ng-repeat='line in cellPosition').row
+                    div.col-md-2
+                    div(ng-repeat="pos in line", id='cellpos{{pos}}').col-md-1.cell {{pos}}
+
+

@@ -7,8 +7,9 @@
     "components"
   ],
   "dependencies": {
-    "angular": "~1.2.14",
+    "angular": "~1.6.3",
     "angular-socket-io": "~0.7.0",
-    "angular-route": "~1.2.14"
+    "angular-route": "~1.6.4",
+
   }
 }
