@@ -2,9 +2,12 @@
  * Created by llabatut on 4/2/17.
  */
 
+
+
 var userNames = (function () {
 
     var names = {};
+    client_redis = require('redis');
 
 
     var claim = function (name) {
@@ -29,24 +32,23 @@ var userNames = (function () {
         if ([null, undefined, 'undefined', 'null'].indexOf(parameters.data.name) !== -1) {
           logger.info('Name not allow %s', parameters.data.name);
           client_redis.incr(redisKeyIncrGuestCount, function (err, value) {
-            if (err) {
-              logger.error('errafter send redis incr %s ', err);
+              if (err) {
+                logger.error('errafter send redis incr %s ', err);
 
-            } else {
-              logger.info('after send redis incr');
-              name = 'Guest' + value;
-              if (!claim(name)) {
-                getGuestName(parameters)
               } else {
-                logger.info('generated name %s', name);
-                parameters.data.name = name;
-                parameters.user.name = name;
-                resolve(parameters)
+                logger.info('after send redis incr');
+                name = 'Guest' + value;
+                if (!claim(name)) {
+                  getGuestName(parameters)
+                } else {
+                  logger.info('generated name %s', name);
+                  parameters.data.name = name;
+                  parameters.user.name = name;
+                  resolve(parameters);
+                }
               }
             }
-          }
-
-        )
+          )
         } else {
           parameters.user.name = parameters.data.name;
           resolve(parameters)

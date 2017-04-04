@@ -3,11 +3,28 @@ extends layout
 block body
     div(ng-controller='AppCtrl').container
         h2 Hello {{name}}
-        ul.menu
-            li
-                a(href='presence') Status
-            li
-                a(href='game') Games
+        div.row
+            div.col-md-4
+
+                div.panel.panel-default
+                    div.panel-heading
+                        b Menu
+                    div.panel-body
+                        ul.menu
+                            li
+                                a(href='presence') Players list.
+                            li
+                                a(href='game') Games list.
+            div.col-md-4.col-md-offset-4
+                div.panel.panel-default
+                    div.panel-heading
+                        b Actions required
+                    div.panel-body
+                        ul
+                            li(ng-repeat="game in games", ng-if='game.waitAction')
+                                a(href='/game/{{game.enemy}}') {{game.enemy}}
+                                &#32; is waiting for you move.
+                            li(ng-show="!actionRequired") No Action required
 
         div(ng-view)
         div

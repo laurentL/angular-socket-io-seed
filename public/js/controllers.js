@@ -6,7 +6,7 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
   socket.on('init:request', function () {
     socket.emit('init:send', {
       name: localStorage.getValue('name') || null,
-      sid: getCookie('connect.sid')|| generateUUID()
+      sid: getCookie('connect.sid') || generateUUID()
 
     });
 
@@ -18,9 +18,35 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
     $scope.name = data.name;
     localStorage.setValue('name', data.name);
     $scope.users = data.users;
-    $scope.games = [];
-    $scope.games.push('Guest1');
-    $scope.games.push('Guest2');
+
+    // parse all games
+    $scope.actionRequired = false;
+    var gameList = {};
+    data.games.forEach(function (game) {
+      var mygrid = game[$scope.name];
+      var waitAction = false;
+      if (game.nextPlayer === $scope.name) {
+        waitAction = true;
+        $scope.actionRequired = true;
+      }
+      var enemy = null;
+      Object.keys(game).forEach(function (key) {
+        if ([$scope.name, 'nextPlayer'].indexOf(key) === -1) {
+          enemy = key;
+        }
+      });
+
+      gameList[enemy] = {
+        enemy: enemy,
+        waitAction: waitAction,
+        // myGrid: new BitArray(49, mygrid ).toString(),
+        myGrid: reverse(pad(new BitArray(null, mygrid).toString(), 48)),
+        //enemyGrid: new BitArray(49, game[enemy] +8).toString()
+        enemyGrid: reverse(pad(new BitArray(null, game[enemy]).toString(), 48)),
+      }
+    });
+
+    $scope.games = gameList;
 
     localStorage.checkVersion(data.version);
   });
@@ -61,9 +87,33 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
     socket.emit('user:ping', {name: $scope.name});
     console.log('sending user:ping: ' + name);
   }
-  socket.on('game:newgame', function (data) {
-    console.log('receive new game from: %s', data.user);
+
+  socket.on('game:update', function (data) {
+    //console.log('receive new game from: %s', data.user);
+    //var enemyGrid = new BitArray(49, data.dataGame[data.user]).toString();
+    var enemyGrid = reverse(pad(new BitArray(null, data.dataGame[data.user]).toString(), 48));
+    //var MyGrid = new BitArray(49, data.dataGame[$scope.name]).toString();
+    var MyGrid = reverse(pad(new BitArray(null, data.dataGame[$scope.name]).toString(), 48));
+
+    console.log('datagame self:', MyGrid);
+    console.log('datagame :', JSON.stringify(data));
+
+    var enemy = null;
+    Object.keys(data.dataGame).forEach(function (key) {
+      if ([$scope.name, 'nextPlayer'].indexOf(key) === -1) {
+        enemy = key;
+      }
+    });
+    var waitAction = (data.dataGame.nextPlayer === $scope.name)
+
+    $scope.games[enemy] = {
+      enemy: enemy,
+      waitAction: waitAction,
+      myGrid: mygrid,
+      enemyGrid: enemyGrid
+    }
   });
+
 
   socket.on('user:leave', function (data) {
     console.log('user is leaving: ' + data.name)
@@ -88,7 +138,7 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
   $scope.$watch(function () {
     return $location.path();
   }, function (newpath) {
-    console.log('entering in fucking anonymous function %s', newpath)
+    console.log('entering in fucking anonymous function %s', newpath);
     var tabpath = newpath.split("/");
     if (tabpath.length > 2) {
       var gameActive = tabpath[2];
@@ -114,8 +164,33 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
     [2, 9, 16, 23, 30, 37, 44],
     [1, 8, 15, 22, 29, 36, 43],
     [0, 7, 14, 21, 28, 35, 42]
-  ]
+  ];
 
+  $scope.noActionRequired = function () {
+
+    var res = true;
+    if ($scope.games === undefined) {
+      return true
+    }
+    $scope.games.forEach(function (game) {
+      if (game.waitAction === true) {
+        res = false
+      }
+    });
+    return res;
+  };
+
+  $scope.playColumn = function (column) {
+    if (!$scope.games[$scope.selectedGame].waitAction) {
+      // todo pop message style wait .. try to cheat ?
+      return;
+    }
+    console.log("play column %s", column);
+    socket.emit('game:play', {
+      to: $scope.selectedGame,
+      column: column
+    })
+  }
 });
 
 

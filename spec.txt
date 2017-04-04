@@ -1,0 +1,2 @@
+une key pour la partie nommé : joueur1-joueur2
+un set par joueur pour la liste des partie

@@ -1,13 +1,17 @@
 div.topbuffer
     <!-- Nav tabs -->
     ul.nav.nav-tabs
-        li( ng-repeat="game in games", ng-click="selectGame(game)", ng-class="{active: selectedGame===game}")
-            a(href="/game/{{game}}", aria-controls=gameid, ) {{game}}
+        li( ng-repeat="game in games", ng-click="selectGame(game).enemy", ng-class="{active: selectedGame===game.enemy}")
+            a(href="/game/{{game.enemy}}", aria-controls=gameid, ) {{game.enemy}}
 
     <!-- Tab panes -->
     div.tab-content.container
-        div( ng-repeat="game in games", ng-show="selectedGame == game").col-md-12
-            h3 {{game}}
+        div( ng-repeat="game in games", ng-show="selectedGame == game.enemy").col-md-12
+            h3 Game versus {{game.enemy}}
+            p {{ game.myGrid}}
+            p {{ game.enemyGrid}}
+            div(ng-class="{'alert-danger' : !game.waitAction, 'alert-info' : game.waitAction}").alert.col-md-10
+                b {{game.waitAction ? "Choice a column" : "Please wait for " + game.enemy + "'s action"}}
             //
             // 5 12 19 26 33 40 47
             // 4 11 18 25 32 39 46
@@ -16,9 +20,14 @@ div.topbuffer
             // 1 8 15 22 29 36 43
             // 0 7 14 21 28 35 42
 
-            div.topbuffer
-                div(ng-repeat='line in cellPosition').row
-                    div.col-md-2
-                    div(ng-repeat="pos in line", id='cellpos{{pos}}').col-md-1.cell {{pos}}
+            div.topbuffer.col-md-12
+
+                div.col-md-8.col-xs-8.col-md-offset-2
+                    div(ng-repeat='line in cellPosition')
+                        div.row
+                            div(ng-repeat="pos in line", ng-click="playColumn($index)", id='cellpos{{pos}}',
+                            ng-class="{'pointer' : game.waitAction  , 'yellow' : game.myGrid[pos] == 1,'red' : game.enemyGrid[pos] == 1}").col-md-1.col-xs-1.cell {{pos}} {{game.myGrid[pos]}} {{game.enemyGrid[pos]}}
+
+
 
 
