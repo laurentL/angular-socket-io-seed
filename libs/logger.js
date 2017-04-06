@@ -1,7 +1,7 @@
-var winston = require('winston');
+let winston = require('winston');
 
-var singleLogger = (function () {
-  var instance;
+const singleLogger = (function () {
+  let instance;
 
   function createInstance() {
     return new (winston.Logger)({
@@ -9,7 +9,9 @@ var singleLogger = (function () {
         new (winston.transports.Console)({
           'timestamp': true,
           colorize: true,
-          level: 'info'
+          level: 'info',
+          json: false,
+
 
         })
       ]
@@ -29,13 +31,12 @@ var singleLogger = (function () {
 String.prototype.formatUnicorn = String.prototype.formatUnicorn ||
   function () {
     "use strict";
-    var str = this.toString();
+    let str = this.toString();
     if (arguments.length) {
-      var t = typeof arguments[0];
-      var key;
-      var args = ("string" === t || "number" === t) ?
-        Array.prototype.slice.call(arguments)
-        : arguments[0];
+      const t = typeof arguments[0];
+      let key;
+      const args = ("string" === t || "number" === t) ?
+        Array.prototype.slice.call(arguments) : arguments[0];
 
       for (key in args) {
         str = str.replace(new RegExp("\\{" + key + "\\}", "gi"), args[key]);
@@ -44,6 +45,5 @@ String.prototype.formatUnicorn = String.prototype.formatUnicorn ||
 
     return str;
   };
-
 
 module.exports = logger = singleLogger.getInstance();

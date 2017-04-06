@@ -24,7 +24,8 @@ block body
                             li(ng-repeat="game in games", ng-if='game.waitAction')
                                 a(href='/game/{{game.enemy}}') {{game.enemy}}
                                 &#32; is waiting for you move.
-                            li(ng-show="!actionRequired") No Action required
+                            li(ng-hide="actionRequired") No Action required
+
 
         div(ng-view)
         div

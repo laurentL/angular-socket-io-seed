@@ -11,15 +11,16 @@ div.topbuffer
             h3 Game versus {{game.enemy}}
             p {{ game.myGrid}}
             p {{ game.enemyGrid}}
-            div(ng-class="{'alert-danger' : !game.waitAction, 'alert-info' : game.waitAction}").alert.col-md-10
-                b {{game.waitAction ? "Choice a column" : "Please wait for " + game.enemy + "'s action"}}
-            //
-            // 5 12 19 26 33 40 47
-            // 4 11 18 25 32 39 46
-            // 3 10 17 24 31 38 45
-            // 2 9 16 23 30 37 44
-            // 1 8 15 22 29 36 43
-            // 0 7 14 21 28 35 42
+            div(ng-hide='game.winner')
+                div(ng-class="{'alert-danger' : !game.waitAction, 'alert-info' : game.waitAction}").alert.col-md-10
+                    b {{game.waitAction ? "Choice a column" : "Please wait for " + game.enemy + "'s action"}}
+
+            div(ng-hide='!game.winner')
+                div(ng-class="game.winner == name ? 'alert-success' : 'alert-danger'").alert.col-md-10
+                    p.text-center
+                        b {{game.winner == name ? "You Win" : "you loose"}}&#32;
+                        button(ng-click="gameInvite(game.enemy)", type="button").btn  Restart a game.
+
 
             div.topbuffer.col-md-12
 

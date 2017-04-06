@@ -26,7 +26,6 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
       var waitAction = false;
       if (game.nextPlayer === $scope.name) {
         waitAction = true;
-        $scope.actionRequired = true;
       }
       var enemy = getEnemy(game);
 
@@ -43,7 +42,6 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
     });
 
     $scope.games = gameList;
-
     localStorage.checkVersion(data.version);
   });
 
@@ -82,20 +80,16 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
 
   socket.on('game:update', function (data) {
     console.log('receive new game %s', data);
-    //var enemyGrid = new BitArray(49, data.dataGame[data.user]).toString();
-    var enemyGrid = reverse(pad(new BitArray(null, getEnemy(data)).toString(), 48));
-    //var MyGrid = new BitArray(49, data.dataGame[$scope.name]).toString();
+    var enemy = getEnemy(data.dataGame);
+    //var enemyGrid = reverse(pad(new BitArray(null, getEnemy(data.dataGame)).toString(), 48));
+    var enemyGrid = reverse(pad(new BitArray(null, data.dataGame[enemy]).toString(), 48));
     var MyGrid = reverse(pad(new BitArray(null, data.dataGame[$scope.name]).toString(), 48));
+    //var MyGrid = reverse(pad(new BitArray(null, data.dataGame[$scope.name]), 48).toString());
 
     console.log('dataGame self:', MyGrid);
     console.log('dataGame :', JSON.stringify(data));
 
-    var enemy = null;
-    Object.keys(data.dataGame).forEach(function (key) {
-      if ([$scope.name, 'nextPlayer', 'winner'].indexOf(key) === -1) {
-        enemy = key;
-      }
-    });
+
     var waitAction = (data.dataGame.nextPlayer === $scope.name);
     var winner = data.dataGame.winner;
 
@@ -103,8 +97,9 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
       enemy: enemy,
       waitAction: waitAction,
       myGrid: MyGrid,
-      enemyGrid: enemyGrid
-    }
+      enemyGrid: enemyGrid,
+      winner: winner
+    };
   });
 
 
@@ -141,6 +136,22 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
     }
   });
 
+
+  $scope.$watch(function (scope) {
+    return scope.games;
+  }, function () {
+    var actionRequired = false;
+    if ('games' in $scope) {
+      Object.keys($scope.games).forEach(function (game) {
+        if ($scope.games[game].waitAction) {
+          actionRequired = true;
+        }
+      });
+    }
+    $scope.actionRequired = actionRequired;
+
+  }, true);
+
   $scope.gameInvite = function (userToInvite) {
     socket.emit('game:invite', {to: userToInvite});
     console.log('invite user %s', userToInvite)
@@ -162,19 +173,6 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
     [0, 7, 14, 21, 28, 35, 42]
   ];
 
-  $scope.noActionRequired = function () {
-
-    var res = true;
-    if ($scope.games === undefined) {
-      return true
-    }
-    $scope.games.forEach(function (game) {
-      if (game.waitAction === true) {
-        res = false
-      }
-    });
-    return res;
-  };
 
   function getEnemy(game) {
     var enemy = null;
@@ -214,3 +212,4 @@ function getCookie(name) {
   var parts = value.split("; " + name + "=");
   if (parts.length === 2) return parts.pop().split(";").shift();
 }
+
