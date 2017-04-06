@@ -1,40 +1,8 @@
-'use strict';
-
-// Declare app level module which depends on filters, and services
-
-angular.module('myApp', [
-  'ngRoute',
-
-  'myApp.controllers',
-  'myApp.filters',
-  'myApp.services',
-  'myApp.directives',
-  'myApp.factory',
-
-  // 3rd party dependencies
-  'btford.socket-io'
-]).config(function ($routeProvider, $locationProvider) {
-
-  $routeProvider.when('/presence', {
-    templateUrl: 'partials/presence'
-
-  })
-    .when('/game',{
-    templateUrl: 'partials/game'
-  })
-    .when('/game/:gameId',{
-    templateUrl: 'partials/game'
- })
-    .otherwise({
-    redirectTo: '/presence'
-  });
-
-  $locationProvider.html5Mode(true);
-  $locationProvider.hashPrefix('');
-});
+/**
+ * Created by llabatut on 4/6/17.
+ */
 
 
-// helpers
 
 function BitArray(size, bits) {
   // Private field - array for our bits
@@ -48,7 +16,7 @@ function BitArray(size, bits) {
     this.m_bits = BitArray.shred(bits).m_bits;
 
   }
-  if (size && this.m_bits.length !== size) {
+  if (size && this.m_bits.length != size) {
     if (this.m_bits.length < size) {
       for (var i = this.m_bits.length; i < size; i++) {
         this.m_bits.push(BitArray._OFF);
@@ -82,7 +50,7 @@ BitArray.prototype.setAt = function (index, value) {
 
 // resize the bit array (append new false/0 indexes)
 BitArray.prototype.resize = function (newSize) {
-  var tmp = [];
+  var tmp = new Array();
   for (var i = 0; i < newSize; i++) {
     if (i < this.m_bits.length) {
       tmp.push(this.m_bits[i]);
@@ -104,7 +72,7 @@ BitArray.prototype.getCompliment = function () {
 
 // Get the string representation ("101010")
 BitArray.prototype.toString = function () {
-  var s = String();
+  var s = new String();
   for (var i = 0; i < this.m_bits.length; i++) {
     s = s.concat(this.m_bits[i] === BitArray._ON ? "1" : "0");
   }
@@ -200,8 +168,4 @@ function pad(n, width, z) {
   z = z || '0';
   n = n + '';
   return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
-}
-
-function reverse(s){
-  return s.split("").reverse().join("");
 }

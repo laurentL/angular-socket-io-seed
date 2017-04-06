@@ -1,13 +1,11 @@
 /**
  * Created by llabatut on 4/2/17.
  */
-
-
+const logger = require('../libs/logger');
 
 var userNames = (function () {
 
     var names = {};
-    client_redis = require('redis');
 
 
     var claim = function (name) {
@@ -22,19 +20,15 @@ var userNames = (function () {
     // find the lowest unused "guest" name and claim it
     var getGuestName = function (parameters) {
       return new Promise(function (resolve, reject) {
-
-        var socket = parameters.socket;
-        var data = parameters.data;
         var client_redis = parameters.redis;
 
         var name,
           redisKeyIncrGuestCount = 'guestId';
         if ([null, undefined, 'undefined', 'null'].indexOf(parameters.data.name) !== -1) {
-          logger.info('Name not allow %s', parameters.data.name);
+          logger.info('Renaming a userName not allow %s', parameters.data.name);
           client_redis.incr(redisKeyIncrGuestCount, function (err, value) {
               if (err) {
-                logger.error('errafter send redis incr %s ', err);
-
+                reject(err);
               } else {
                 logger.info('after send redis incr');
                 name = 'Guest' + value;
@@ -60,7 +54,7 @@ var userNames = (function () {
     // serialize claimed names as an array
     var get = function () {
       var res = [];
-      for (user in names) {
+      for (var user in names) {
         res.push(user);
       }
 
@@ -83,4 +77,4 @@ var userNames = (function () {
   ()
 ;
 
-module.exports = userNames
+module.exports = userNames;

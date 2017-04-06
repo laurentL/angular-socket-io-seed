@@ -2,12 +2,11 @@
  * messages from websocket
  *
  */
-var userNames = require('../libs/userNames');
-var logger = require('../libs/logger');
+
+const logger = require('../libs/logger');
 var p4 = require('../libs/p4');
 
 var messages = {
-  recvInitSend: recvInitSend,
   sendInit: sendInit,
   sendBroadcastUserJoin: sendBroadcastUserJoin,
   storeSid: storeSid,
@@ -27,23 +26,10 @@ var messages = {
 
 module.exports = messages;
 
-function recvInitSend(parameters) {
-  return new Promise(function (resolve, reject) {
-
-      var socket = parameters.socket;
-      var data = parameters.data;
-      var client_redis = parameters.redis;
-      resolve(parameters);
-    }
-  )
-}
-
-
 function sendInit(parameters) {
   return new Promise(function (resolve, reject) {
 
       var socket = parameters.socket;
-      var data = parameters.data;
       var client_redis = parameters.redis;
 
 
@@ -52,7 +38,8 @@ function sendInit(parameters) {
       var users = [];
       client_redis.smembers('ListConnectedUser', function (err, value) {
           if (err) {
-            logger.error(new Error(err))
+            logger.error(new Error(err));
+            reject(err)
           } else {
             users = value;
             var dataGames = [];
@@ -94,11 +81,11 @@ function sendInit(parameters) {
 }
 
 function sendBroadcastUserJoin(parameters) {
+  //noinspection JSUnusedLocalSymbols
   return new Promise(function (resolve, reject) {
 
       var socket = parameters.socket;
-      var data = parameters.data;
-      var client_redis = parameters.redis;
+
       socket.broadcast.emit('user:join', {name: parameters.data.name});
       resolve(parameters);
     }
@@ -106,27 +93,24 @@ function sendBroadcastUserJoin(parameters) {
 }
 
 function storeSid(parameters) {
+  //noinspection JSUnusedLocalSymbols
   return new Promise(function (resolve, reject) {
 
       var socket = parameters.socket;
-      var data = parameters.data;
       var client_redis = parameters.redis;
       var key = 'sid-' + parameters.user.name;
       client_redis.sadd(key, socket.id);
       client_redis.expire(key, 3600 * 24);
       resolve(parameters);
-
-      // stuff
-      // resolv and reject
     }
   )
 }
 
 function deleteSid(parameters) {
+  //noinspection JSUnusedLocalSymbols
   return new Promise(function (resolve, reject) {
 
     var socket = parameters.socket;
-    var data = parameters.data;
     var client_redis = parameters.redis;
     client_redis.srem('sid-' + parameters.user.name, socket.id);
     resolve(parameters);
@@ -135,13 +119,11 @@ function deleteSid(parameters) {
 
 function gameInvite(parameters) {
   return new Promise(function (resolve, reject) {
-
-    var socket = parameters.socket;
-    var data = parameters.data;
     var client_redis = parameters.redis;
     var key = 'sid-' + parameters.data.to;
 
     client_redis.smembers(key, function (err, values) {
+      if (err) reject(err);
       parameters.next = values;
       resolve(parameters);
 
@@ -150,17 +132,18 @@ function gameInvite(parameters) {
 }
 
 function sendInvite(parameters) {
+  //noinspection JSUnusedLocalSymbols
   return new Promise(function (resolve, reject) {
 
       var socket = parameters.socket;
-      var data = parameters.data;
-      var client_redis = parameters.redis;
       var sessions = parameters.next;
       logger.info('Entering in sendInvite');
+
       // self invite to the game
       socket.emit('game:update', {
         dataGame: parameters.dataGame
       });
+
       // invite enemy
       sessions.forEach(function (session) {
         socket.broadcast.to(session).emit('game:update', {
@@ -179,8 +162,6 @@ function sendInvite(parameters) {
 function CreateGame(parameters) {
   return new Promise(function (resolve, reject) {
 
-      var socket = parameters.socket;
-      var data = parameters.data;
       var client_redis = parameters.redis;
 
       // add game
@@ -193,7 +174,7 @@ function CreateGame(parameters) {
         logger.info('get %s game from redis return %s', key, value);
         if (value === null) {
           // create game/key
-          dataGame = {};
+          let dataGame = {};
           dataGame[parameters.user.name] = 0;
           dataGame[parameters.data.to] = 0;
           // random first player
@@ -223,10 +204,9 @@ function CreateGame(parameters) {
 
 
 function addGameToUser(parameters) {
+  //noinspection JSUnusedLocalSymbols
   return new Promise(function (resolve, reject) {
 
-      var socket = parameters.socket;
-      var data = parameters.data;
       var client_redis = parameters.redis;
       logger.info('Entering in AddGameToUser');
       client_redis.sadd('games-' + parameters.user.name, parameters.data.to.toString());
@@ -237,10 +217,9 @@ function addGameToUser(parameters) {
 }
 function addToConnectedUser(parameters) {
 
+  //noinspection JSUnusedLocalSymbols
   return new Promise(function (resolve, reject) {
 
-      var socket = parameters.socket;
-      var data = parameters.data;
       var client_redis = parameters.redis;
       client_redis.sadd('ListConnectedUser', parameters.user.name);
       resolve(parameters);
@@ -254,8 +233,6 @@ function loadGame(parameters) {
 
   return new Promise(function (resolve, reject) {
 
-      var socket = parameters.socket;
-      var data = parameters.data;
       var client_redis = parameters.redis;
       /* data format:
        to: $scope.selectedGame,
@@ -278,9 +255,7 @@ function loadGame(parameters) {
 
 function addplay(parameters) {
   return new Promise(function (resolve, reject) {
-      var socket = parameters.socket;
-      var data = parameters.data;
-      var client_redis = parameters.redis;
+
       if (parameters.dataGame.nextPlayer !== parameters.user.name) {
         // reject play
         reject(parameters.user.name + ' play in place of ' + parameters.dataGame.nextPlayer)
@@ -318,6 +293,7 @@ function addplay(parameters) {
 }
 
 function isWinner(parameters) {
+  //noinspection JSUnusedLocalSymbols
   return new Promise(function (resolve, reject) {
       var myGrid_int = parseInt(parameters.dataGame[parameters.user.name]);
 
@@ -334,14 +310,16 @@ function isWinner(parameters) {
 
 function storePlay(parameters) {
   return new Promise(function (resolve, reject) {
-      var socket = parameters.socket;
+
       var client_redis = parameters.redis;
       var key = getRedisKeyGame(parameters.user.name, parameters.data.to);
 
       if (parameters.dataGame.winner !== false) {
         logger.info('delete game %s', key);
         client_redis.del(key, function (err) {
+          if (err) reject(err);
           client_redis.srem('games-' + parameters.data.to, parameters.user.name, function (err) {
+            if (err) reject(err);
             client_redis.srem('games-' + parameters.user.name, parameters.data.to, function (err) {
               if (err) {
                 reject(err);
@@ -385,6 +363,7 @@ function sendPlay(parameters) {
     ];
     logger.info('call redis sunion %s', keys);
     client_redis.sunion(keys, function (err, sessions) {
+        if (err) reject(err);
         sessions.forEach(function (session) {
           logger.info('game:update sessions=%s, data=%s ', session, JSON.stringify(parameters.dataGame));
           socket.broadcast.to(session).emit('game:update', {
@@ -392,19 +371,24 @@ function sendPlay(parameters) {
           });
         });
       }
-    )
+    );
+    resolve(parameters);
   })
 }
 
 
-
+//noinspection JSUnusedLocalSymbols
 function Dummy(parameters) {
 
+  //noinspection JSUnusedLocalSymbols
   return new Promise(function (resolve, reject) {
 
-      var socket = parameters.socket;
-      var data = parameters.data;
-      var client_redis = parameters.redis;
+      //noinspection JSUnusedLocalSymbols
+    var socket = parameters.socket;
+      //noinspection JSUnusedLocalSymbols
+    var data = parameters.data;
+      //noinspection JSUnusedLocalSymbols
+    var client_redis = parameters.redis;
     }
   )
 }
@@ -417,6 +401,7 @@ function getRedisKeyGame(player1, player2) {
 /*
  Reverse a string
  */
+//noinspection JSUnusedLocalSymbols
 function reverse(s) {
   return s.split("").reverse().join("");
 }

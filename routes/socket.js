@@ -16,14 +16,14 @@ module.exports = function (socket) {
   socket.emit('init:request', {});
   var name = null;
   var ContextUser = {};
-  var Contextwebsocket = {
+  var ContextWebsocket = {
     redis: client_redis,
     socket: socket
   };
 
   socket.on('game:invite', function (data) {
     logger.info('receive game:invite from %s to %s', ContextUser.name, data.to);
-    var parameters = Contextwebsocket;
+    var parameters = ContextWebsocket;
     parameters.data = data;
     parameters.user = ContextUser;
     messages.gameInvite(parameters)
@@ -49,7 +49,7 @@ module.exports = function (socket) {
       return
     }
 
-    var parameters = Contextwebsocket;
+    var parameters = ContextWebsocket;
     parameters.data = data;
     parameters.user = ContextUser;
     messages.loadGame(parameters) // revolve : parameter.dataGame
@@ -63,12 +63,11 @@ module.exports = function (socket) {
   });
 
   socket.on('init:send', function (data) {
-    var parameters = Contextwebsocket;
+    var parameters = ContextWebsocket;
     parameters.data = data;
     parameters.user = ContextUser;
 
-    messages.recvInitSend(parameters)
-      .then(userNames.getGuestName)
+    userNames.getGuestName(parameters)
       .then(messages.sendInit)
       .then(messages.addToConnectedUser)
       .then(messages.storeSid)
@@ -91,7 +90,7 @@ module.exports = function (socket) {
 
   // Ping for update presence
   socket.on('user:ping', function (data) {
-    if (ContextUser.name != data.name) {
+    if (ContextUser.name !== data.name) {
       logger.error('name mismatch in user:ping %s != %s', ContextUser.name, data.name);
       return
     }
@@ -105,13 +104,13 @@ module.exports = function (socket) {
 
   // disconnect => clean and remove session
   socket.on('disconnect', function () {
-    // possible case during reloas server
+    // possible case during reload server
     // todo search sid in all user ( reverse hashmap)
     if (ContextUser.name === undefined) {
       return
     }
     logger.info('user disconnected', ContextUser.name);
-    var parameters = Contextwebsocket;
+    var parameters = ContextWebsocket;
     parameters.user = ContextUser;
 
     messages.deleteSid(parameters).catch(function (err) {
@@ -121,7 +120,7 @@ module.exports = function (socket) {
       if (err) {
         logger.error(new Error(err))
       } else {
-        if (value == 0) {
+        if (value === 0) {
           socket.broadcast.emit('user:leave', {
             name: ContextUser.name
           });
