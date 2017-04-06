@@ -166,7 +166,7 @@ function CreateGame(parameters) {
 
       // add game
       var key = getRedisKeyGame(parameters.user.name, parameters.data.to);
-
+      // resume the last game
       client_redis.get(key, function (error, value) {
         if (error) {
           reject(new Error(err))
@@ -191,7 +191,7 @@ function CreateGame(parameters) {
           resolve(parameters);
 
         } else {
-          parameters.dataGame = value;
+          parameters.dataGame = JSON.parse(value);
           parameters.newGame = false;
           resolve(parameters);
         }

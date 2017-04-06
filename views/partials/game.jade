@@ -1,6 +1,6 @@
 div.topbuffer
     <!-- Nav tabs -->
-    $ {{games}}
+
     ul.nav.nav-tabs
         li( ng-repeat="game in games", ng-click="selectGame(game).enemy", ng-class="{active: selectedGame===game.enemy}")
             a(href="/game/{{game.enemy}}", aria-controls=gameid, ) {{game.enemy}}
@@ -9,8 +9,7 @@ div.topbuffer
     div.tab-content.container
         div( ng-repeat="game in games", ng-show="selectedGame == game.enemy").col-md-12
             h3 Game versus {{game.enemy}}
-            p {{ game.myGrid}}
-            p {{ game.enemyGrid}}
+
             div(ng-hide='game.winner')
                 div(ng-class="{'alert-danger' : !game.waitAction, 'alert-info' : game.waitAction}").alert.col-md-10
                     b {{game.waitAction ? "Choice a column" : "Please wait for " + game.enemy + "'s action"}}

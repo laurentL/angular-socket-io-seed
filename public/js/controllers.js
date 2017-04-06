@@ -80,16 +80,10 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
 
   socket.on('game:update', function (data) {
     console.log('receive new game %s', data);
+    console.log('receive new game %s', JSON.stringify(data));
     var enemy = getEnemy(data.dataGame);
-    //var enemyGrid = reverse(pad(new BitArray(null, getEnemy(data.dataGame)).toString(), 48));
     var enemyGrid = reverse(pad(new BitArray(null, data.dataGame[enemy]).toString(), 48));
     var MyGrid = reverse(pad(new BitArray(null, data.dataGame[$scope.name]).toString(), 48));
-    //var MyGrid = reverse(pad(new BitArray(null, data.dataGame[$scope.name]), 48).toString());
-
-    console.log('dataGame self:', MyGrid);
-    console.log('dataGame :', JSON.stringify(data));
-
-
     var waitAction = (data.dataGame.nextPlayer === $scope.name);
     var winner = data.dataGame.winner;
 
@@ -142,6 +136,7 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
   }, function () {
     var actionRequired = false;
     if ('games' in $scope) {
+      console.log('Watch scope.games %s',JSON.stringify( $scope.games));
       Object.keys($scope.games).forEach(function (game) {
         if ($scope.games[game].waitAction) {
           actionRequired = true;
@@ -176,11 +171,11 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
 
   function getEnemy(game) {
     var enemy = null;
-    Object.keys(game).forEach(function (key) {
+    for (var key in game) {
       if ([$scope.name, 'nextPlayer', 'winner'].indexOf(key) === -1) {
         enemy = key;
       }
-    });
+    };
     return enemy;
   }
 
