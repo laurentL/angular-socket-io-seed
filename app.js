@@ -16,8 +16,8 @@ var sharedSession = require("express-socket.io-session");
 var app = module.exports = express();
 var server = require('http').createServer(app);
 var io = require('socket.io').listen(server);
-var redis = require('socket.io-redis');
-io.adapter(redis({host: 'localhost', port: 6379}));
+var redisIo = require('socket.io-redis');
+io.adapter(redisIo({host: 'localhost', port: 6379}));
 io.set('transports', ['websocket']);
 
 

@@ -48,7 +48,7 @@ function sendInit(parameters) {
 
 
       // send the new user their name and a list of users
-      logger.info('send INIT to %s', parameters.data.name);
+      log('info', {socket: socket}, 'send INIT to %s', parameters.data.name);
       var users = [];
       client_redis.smembers('ListConnectedUser', function (err, value) {
           if (err) {
@@ -61,7 +61,7 @@ function sendInit(parameters) {
                 logger.error(new Error(err))
               } else {
                 // Load all game for the curent user
-                logger.info('games for %s : %s', parameters.data.name, enemies);
+                log('info', {socket: socket}, 'games for %s : %s', parameters.data.name, enemies);
                 var keys = [];
                 enemies.forEach(function (enemy) {
                   keys.push(getRedisKeyGame(enemy, parameters.data.name));
@@ -76,7 +76,7 @@ function sendInit(parameters) {
                   }
 
 
-                  logger.info('dataGame for user %s ', parameters.data.name, JSON.stringify(dataGames))
+                  log('info', {socket: socket}, 'dataGame for user %s ', parameters.data.name, JSON.stringify(dataGames))
 
                   socket.emit('init', {
                     name: parameters.data.name,
@@ -166,9 +166,9 @@ function sendInvite(parameters) {
       var data = parameters.data;
       var client_redis = parameters.redis;
       var sessions = parameters.next;
+      log('info', {socket: socket}, 'Entering in sendInvite')
       // self invite to the game
-      socket.emit('game:newgame', {
-        user: parameters.data.to,
+      socket.emit('game:update', {
         dataGame: parameters.dataGame
       });
       // invite enemy
@@ -195,12 +195,12 @@ function CreateGame(parameters) {
 
       // add game
       var key = getRedisKeyGame(parameters.user.name, parameters.data.to);
-      logger.info('add a new game %s', key);
+      log('info', {socket: socket}, 'add a new game %s', key);
       client_redis.get(key, function (error, value) {
         if (error) {
           reject(new Error(err))
         }
-        logger.info('get %s game from redis return %s', key, value);
+        log('info', {socket: socket}, 'get %s game from redis return %s', key, value);
         if (value === null) {
           // create game/key
           dataGame = {};
@@ -212,7 +212,8 @@ function CreateGame(parameters) {
           } else {
             dataGame.nextPlayer = parameters.user.name;
           }
-          logger.info('store datagame to redis %s', JSON.stringify(dataGame))
+          dataGame.winner = false,
+            log('info', {socket: socket}, 'store datagame to redis %s', JSON.stringify(dataGame))
           client_redis.set(key, JSON.stringify(dataGame));
           parameters.dataGame = dataGame;
           parameters.newGame = true;
@@ -237,6 +238,7 @@ function addGameToUser(parameters) {
       var socket = parameters.socket;
       var data = parameters.data;
       var client_redis = parameters.redis;
+      log('info', {socket: socket}, 'Entering in AddGameToUser');
       client_redis.sadd('games-' + parameters.user.name, parameters.data.to.toString());
       client_redis.sadd('games-' + parameters.data.to, parameters.user.name.toString());
       resolve(parameters);
@@ -269,12 +271,13 @@ function loadGame(parameters) {
        to: $scope.selectedGame,
        column: column
        */
-      client_redis.get(getRedisKeyGame(parameters.data.to, parameters.user.name), function (err, value) {
+      var key = getRedisKeyGame(parameters.data.to, parameters.user.name);
+      client_redis.get(key, function (err, value) {
         if (err) {
           reject(err)
         } else {
           parameters.dataGame = JSON.parse(value);
-          logger.info('sid=%s: game loaded %s', socket.sid);
+          log('info', {socket: socket}, 'game loaded %s', key);
           resolve(parameters)
         }
       })
@@ -292,29 +295,34 @@ function addplay(parameters) {
       var client_redis = parameters.redis;
       if (parameters.dataGame.nextPlayer !== parameters.user.name) {
         // reject play
-        reject('%s play in place of %s', parameters.user.name, parameters.dataGame.nextPlayer)
+        reject(parameters.user.name + ' play in place of ' + parameters.dataGame.nextPlayer)
       }
       // merge 2 grid
-      var mergedGrid_int = parseInt(parameters.dataGame[parameters.user.name]) + parseInt(parameters.dataGame[parameters.user.name]);
+      var mergedGrid_int = parseInt(parameters.dataGame[parameters.user.name]) + parseInt(parameters.dataGame[parameters.data.to]);
 
       /*
        find lower free case in column
        cell :range( 7 x column , 7x column + 5 )inc
        */
-      var mergedGrid_bitArray = reverse((mergedGrid_int + Math.pow(2, 49)).toString(2)).substring(0, 48);
-      lowerCell = 7 * parseInt(parameters.dataGame.column);
-      var cell;
-      for (cell = lowerCell; cell < lowerCell + 8; i++) {
-        if (mergedGrid_bitArray[cell] === '0') {
+      //var mergedGrid_bitArray = reverse((mergedGrid_int + Math.pow(2, 49)).toString(2)).substring(0, 47);
+      var lowerCell = 7 * parseInt(parameters.data.column);
+      var freecell = null;
+      for (var cell = lowerCell; cell < lowerCell + 8; cell++) {
+        var bit = Math.floor((mergedGrid_int / Math.pow(2,cell) % 2 ));
+        if ( bit === 0) {
+          freecell = cell;
+          log('debug', {socket: socket}, 'free bit at position %s', freecell);
           break;
         }
       }
-      if (cell > lowerCell + 7) {
+      if (freecell > lowerCell + 7) {
         reject('Colomn full')
       } else {
-        // set to 1 le cell
-        parameters.dataGame[parameters.user.name] = parameters.dataGame[parameters.user.name] + Math.pow(2, cell);
+
+        // set the cell to 1
+        parameters.dataGame[parameters.user.name] = parameters.dataGame[parameters.user.name] + Math.pow(2, freecell);
         parameters.dataGame.nextPlayer = parameters.data.to;
+        log('info', {socket: socket}, 'Play added cell=' + freecell + ' mergedGrid=' + mergedGrid_int);
         resolve(parameters);
       }
     }
@@ -323,9 +331,10 @@ function addplay(parameters) {
 
 function isWinner(parameters) {
   return new Promise(function (resolve, reject) {
-      var mergedGrid_int = parseInt(parameters.dataGame[parameters.user.name]) + parseInt(parameters.dataGame[parameters.user.name]);
+      var myGrid_int = parseInt(parameters.dataGame[parameters.user.name]);
 
-      if (p4.isWinner(mergedGrid_int)) {
+      if (p4.isWinner(myGrid_int)) {
+        log('info', {socket: parameters.socket}, 'Winner: %s : %s', parameters.user.name, parameters.dataGame[parameters.user.name]);
         parameters.dataGame.winner = parameters.user.name;
         parameters.dataGame.nextPlayer = null;
 
@@ -352,27 +361,42 @@ function storePlay(parameters) {
 
 
 function sendPlay(parameters) {
+
   return new Promise(function (resolve, reject) {
+
     var socket = parameters.socket;
     var data = parameters.data;
     var client_redis = parameters.redis;
 
+    log('info', {socket: socket}, 'send game:update to %s', parameters.user.name);
+    socket.emit('game:update', {
+      dataGame: parameters.dataGame
+    });
     var keys = [
       'sid-' + parameters.data.to,
       'sid-' + parameters.user.name
     ];
-    client_redis.sunion(keys, function (err, session) {
-        socket.broadcast.to(session).emit('game:update', {
-          dataGame: parameters.dataGame
+    log('info', {socket: socket}, 'call redis sunion %s', keys);
+    client_redis.sunion(keys, function (err, sessions) {
+        sessions.forEach(function (session) {
+          log('info', {socket: socket}, 'game:update sessions=%s, data=%s ', session, JSON.stringify(parameters.dataGame));
+          socket.broadcast.to(session).emit('game:update', {
+            dataGame: parameters.dataGame
+          });
         });
-
       }
     )
   })
 }
-function log(level, Context, message) {
-  formatedMessage = 'sid={0}, message={1}'.format(Context.socket.id, message)
-  logger.log(level, formatedMessage)
+
+function log(level, Context, message,
+...
+args
+)
+{
+  var formatedMessage = 'sid={0}, message={1}'.formatUnicorn(Context.socket.id, message)
+  logger.log(level, formatedMessage,...args
+)
 }
 
 function Dummy(parameters) {

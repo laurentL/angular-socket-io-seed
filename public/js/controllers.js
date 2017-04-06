@@ -7,7 +7,6 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
     socket.emit('init:send', {
       name: localStorage.getValue('name') || null,
       sid: getCookie('connect.sid') || generateUUID()
-
     });
 
   });
@@ -29,12 +28,7 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
         waitAction = true;
         $scope.actionRequired = true;
       }
-      var enemy = null;
-      Object.keys(game).forEach(function (key) {
-        if ([$scope.name, 'nextPlayer'].indexOf(key) === -1) {
-          enemy = key;
-        }
-      });
+      var enemy = getEnemy(game);
 
       gameList[enemy] = {
         enemy: enemy,
@@ -42,8 +36,10 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
         // myGrid: new BitArray(49, mygrid ).toString(),
         myGrid: reverse(pad(new BitArray(null, mygrid).toString(), 48)),
         //enemyGrid: new BitArray(49, game[enemy] +8).toString()
-        enemyGrid: reverse(pad(new BitArray(null, game[enemy]).toString(), 48)),
-      }
+        enemyGrid: reverse(pad(new BitArray(null, game[enemy]).toString(), 48))
+      };
+      console.log('myGrid %s', mygrid);
+      console.log('enemyGrid %s', game[enemy]);
     });
 
     $scope.games = gameList;
@@ -55,14 +51,10 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
     $scope.name = data.name;
   });
 
-  socket.on('send:message', function (message) {
-    $scope.messages.push(message);
-  });
-
   // never expected
   socket.on('user:update', function (data) {
     if ($scope.name !== data.name) {
-      console.error('local:%s, server:%s', $scope.name, data.name)
+      console.error('local:%s, server:%s', $scope.name, data.name);
       socket.disconnect();
       localStorage.delValue('name');
       socket.connect();
@@ -79,7 +71,7 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
     console.log('update presence user %s', data.name)
 
   });
-  var dummyVar = setInterval(function () {
+  setInterval(function () {
     ping()
   }, 30000);
 
@@ -89,34 +81,35 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
   }
 
   socket.on('game:update', function (data) {
-    //console.log('receive new game from: %s', data.user);
+    console.log('receive new game %s', data);
     //var enemyGrid = new BitArray(49, data.dataGame[data.user]).toString();
-    var enemyGrid = reverse(pad(new BitArray(null, data.dataGame[data.user]).toString(), 48));
+    var enemyGrid = reverse(pad(new BitArray(null, getEnemy(data)).toString(), 48));
     //var MyGrid = new BitArray(49, data.dataGame[$scope.name]).toString();
     var MyGrid = reverse(pad(new BitArray(null, data.dataGame[$scope.name]).toString(), 48));
 
-    console.log('datagame self:', MyGrid);
-    console.log('datagame :', JSON.stringify(data));
+    console.log('dataGame self:', MyGrid);
+    console.log('dataGame :', JSON.stringify(data));
 
     var enemy = null;
     Object.keys(data.dataGame).forEach(function (key) {
-      if ([$scope.name, 'nextPlayer'].indexOf(key) === -1) {
+      if ([$scope.name, 'nextPlayer', 'winner'].indexOf(key) === -1) {
         enemy = key;
       }
     });
-    var waitAction = (data.dataGame.nextPlayer === $scope.name)
+    var waitAction = (data.dataGame.nextPlayer === $scope.name);
+    var winner = data.dataGame.winner;
 
     $scope.games[enemy] = {
       enemy: enemy,
       waitAction: waitAction,
-      myGrid: mygrid,
+      myGrid: MyGrid,
       enemyGrid: enemyGrid
     }
   });
 
 
   socket.on('user:leave', function (data) {
-    console.log('user is leaving: ' + data.name)
+    console.log('user is leaving: ' + data.name);
     var i, user;
     for (i = 0; i < $scope.users.length; i++) {
       user = $scope.users[i];
@@ -134,11 +127,12 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
     $scope.selectedGame = game;
     console.log("select %s", game)
   };
+
   // Update app over location
   $scope.$watch(function () {
     return $location.path();
   }, function (newpath) {
-    console.log('entering in fucking anonymous function %s', newpath);
+    console.debug('entering in fucking anonymous function %s', newpath);
     var tabpath = newpath.split("/");
     if (tabpath.length > 2) {
       var gameActive = tabpath[2];
@@ -146,10 +140,12 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
       console.log('select %s', gameActive)
     }
   });
+
   $scope.gameInvite = function (userToInvite) {
     socket.emit('game:invite', {to: userToInvite});
     console.log('invite user %s', userToInvite)
   };
+
   // magic cell position
   // 5 12 19 26 33 40 47
   // 4 11 18 25 32 39 46
@@ -180,6 +176,16 @@ angular.module('myApp.controllers', []).controller('AppCtrl', function ($scope, 
     return res;
   };
 
+  function getEnemy(game) {
+    var enemy = null;
+    Object.keys(game).forEach(function (key) {
+      if ([$scope.name, 'nextPlayer', 'winner'].indexOf(key) === -1) {
+        enemy = key;
+      }
+    });
+    return enemy;
+  }
+
   $scope.playColumn = function (column) {
     if (!$scope.games[$scope.selectedGame].waitAction) {
       // todo pop message style wait .. try to cheat ?
@@ -206,5 +212,5 @@ function generateUUID() {
 function getCookie(name) {
   var value = "; " + document.cookie;
   var parts = value.split("; " + name + "=");
-  if (parts.length == 2) return parts.pop().split(";").shift();
+  if (parts.length === 2) return parts.pop().split(";").shift();
 }

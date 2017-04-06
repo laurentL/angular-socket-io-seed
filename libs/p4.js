@@ -1,7 +1,3 @@
-
-
-
-
 /**
  pour savoir si la grille est gagnante pour un joueur, seul les jeton de ce joueur sont interessant.
  pour caque case il n'y a que deux possibilitées, ou elle est occupé par un point du dit joueur noté bool 1
@@ -26,7 +22,7 @@ function isWinner(grid) {
    1111 & 0111 => 0111 on a 3 fois 2 jetons alignés
 
    deuxieme passe:
-   on decale de 14 => 2 collonnes et on compare avec un et logique
+   on decale de 14 => 2 colonnes et on compare avec un et logique
    0000 & 0000 =>  0000 => You loose
    0100 & 0001 =>  0000 => You loose
    0011 & 0000 =>  0000 => You loose
@@ -34,23 +30,58 @@ function isWinner(grid) {
    */
 
   // UP
-  var twiceTokens = grid & (grid >> 1);             // up
-  if (twiceTokens && (twiceTokens >> 2))         // up + up
+  /*var twiceTokens = grid & (grid >> 1);             // up
+  //noinspection JSBitwiseOperatorUsage
+  if (twiceTokens & (twiceTokens >> 2)) {         // up + up
+
     return true;
+  }*/
+  var twiceTokens = BitwiseAndLarge(grid , (grid * Math.pow(2,1)));
+  if (BitwiseAndLarge(twiceTokens, twiceTokens * Math.pow(2,2)) >0) {
+    return true;
+  }
+
 
   // left
+  /*
   twiceTokens = grid & (grid >> 7);             // left
-  if (twiceTokens && (twiceTokens >> 2 * 7))     // left + left
+  //noinspection JSBitwiseOperatorUsage
+  if (twiceTokens & (twiceTokens >> 2 * 7)) {     // left + left
+
     return true;
+  }*/
+  var twiceTokens = BitwiseAndLarge(grid , (grid * Math.pow(2,7)));
+  if (BitwiseAndLarge(twiceTokens, twiceTokens * Math.pow(2,7 *2) ) >0) {
+    return true;
+  }
 
   // diagonal down right
+  /*
   twiceTokens = grid & (grid >> 8);
-  if (twiceTokens && (twiceTokens >> 2 * 8))
+  //noinspection JSBitwiseOperatorUsage
+  if (twiceTokens & (twiceTokens >> 2 * 8)) {
+
     return true;
+  }*/
+  var twiceTokens = BitwiseAndLarge(grid , (grid * Math.pow(2,8)));
+  if (BitwiseAndLarge(twiceTokens, twiceTokens * Math.pow(2,8*2)) >0) {
+    return true;
+  }
 
   // diagonal upper right
+  /*
   twiceTokens = grid & (grid >> 6);
-  return !!(twiceTokens && (twiceTokens >> 2 * 6)); // return the last result in bool type
+  //noinspection JSBitwiseOperatorUsage
+  if (twiceTokens & (twiceTokens >> 2 * 6)) { // return the last result in bool type
+
+    return true;
+  }*/
+  var twiceTokens = BitwiseAndLarge(grid , (grid * Math.pow(2,6)));
+  if (BitwiseAndLarge(twiceTokens, twiceTokens * Math.pow(2,6 * 2)) >0) {
+    return true;
+  }
+  return false;
+
 }
 
 
@@ -59,3 +90,19 @@ var p4 = {
 };
 
 module.exports = p4;
+
+function BitwiseAndLarge(val1, val2) {
+  var shift = 0, result = 0;
+  var mask = ~((~0) << 30); // Gives us a bit mask like 01111..1 (30 ones)
+  var divisor = 1 << 30; // To work with the bit mask, we need to clear bits at a time
+  while( (val1 != 0) && (val2 != 0) ) {
+    var rs = (mask & val1) & (mask & val2);
+    val1 = Math.floor(val1 / divisor); // val1 >>> 30
+    val2 = Math.floor(val2 / divisor); // val2 >>> 30
+    for(var i = shift++; i--;) {
+      rs *= divisor; // rs << 30
+    }
+    result += rs;
+  }
+  return result;
+}

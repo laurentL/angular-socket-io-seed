@@ -1,5 +1,6 @@
 div.topbuffer
     <!-- Nav tabs -->
+    $ {{games}}
     ul.nav.nav-tabs
         li( ng-repeat="game in games", ng-click="selectGame(game).enemy", ng-class="{active: selectedGame===game.enemy}")
             a(href="/game/{{game.enemy}}", aria-controls=gameid, ) {{game.enemy}}

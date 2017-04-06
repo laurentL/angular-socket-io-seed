@@ -3,8 +3,13 @@
  */
 var logger = require('../libs/logger');
 
+function log(level, Context, message, ...args){
+  var formatedMessage = 'sid={0}, message={1}'.formatUnicorn(Context.socket.id, message)
+  logger.log(level, formatedMessage, ...args)
+}
+
 var redis = require('redis');
-var client_redis = redis.createClient();
+var client_redis = redis.createClient({db: process.env.REDIS_DB || 0});
 var messages = require('../libs/messages');
 var userNames = require('../libs/userNames');
 
@@ -20,7 +25,7 @@ module.exports = function (socket) {
   };
 
   socket.on('game:invite', function (data) {
-    logger.info('receive game:invite from %s to %s', ContextUser.name, data.to);
+    messages.log('info', {socket: socket}, 'receive game:invite from %s to %s', ContextUser.name, data.to);
     var parameters = Contextwebsocket;
     parameters.data = data;
     parameters.user = ContextUser;
@@ -38,6 +43,14 @@ module.exports = function (socket) {
     messages.log('info', {socket: socket}, 'receive game:play from %s to %s colomn %s', ContextUser.name, data.to, data.column);
     var to = data.to,
       column = data.column;
+    if (data.column !== parseInt(data.column)) {
+      log('error', {socket: socket}, 'Column must be a int');
+      socket.emit('error', {
+        message: 'Bad Move',
+        error: 'column must be an int, not ' + data.column
+      });
+      return
+    }
 
     var parameters = Contextwebsocket;
     parameters.data = data;
@@ -64,7 +77,7 @@ module.exports = function (socket) {
       .then(messages.storeSid)
       .then(messages.sendBroadcastUserJoin)
       .then(function (parameters) {
-        logger.info('User connected %s', parameters.data.name);
+        messages.log('info', {socket: socket}, 'User connected %s', parameters.data.name);
       })
       .catch(function (err) {
         logger.error(err);
@@ -86,7 +99,7 @@ module.exports = function (socket) {
       return
     }
     userNames.claim(ContextUser.name);
-    logger.info('user:ping %s', ContextUser.name);
+    messages.log('info', {socket: socket}, 'user:ping %s', ContextUser.name);
     client_redis.setex('presence-' + ContextUser.name, 30, 'CREPEOSUC');
     socket.broadcast.emit('user:presence', {name: ContextUser.name});
     //refresh myself
@@ -100,7 +113,7 @@ module.exports = function (socket) {
     if (ContextUser.name === undefined) {
       return
     }
-    logger.info('user disconnected', ContextUser.name);
+    messages.log('info', {socket: socket}, 'user disconnected', ContextUser.name);
     var parameters = Contextwebsocket;
     parameters.user = ContextUser;
 
